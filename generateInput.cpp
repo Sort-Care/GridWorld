@@ -2,8 +2,8 @@
  * Grid World: Generate the transition table in the input file.
  * Author: Haoyu Ji
  * Usage: 
- * g++-7 generateInput.cpp
- * ./a.out > [out_filename]
+ * > g++-7 generateInput.cpp
+ * > ./a.out > [out_filename]
  * Output File Structure:
  * First Line: number of states |S|
  * Next |S| lines: rewards for entering each state
@@ -12,7 +12,7 @@
  *       {state_i transit with action |A|} * |S|
  *
  * TODO: 
- *    1. Adding absorbing state
+ * 1. Adding absorbing state
  */
 
 
