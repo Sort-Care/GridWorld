@@ -25,7 +25,7 @@
 //Total number of states
 const int STATE_NUM = 23;
 const int NEG_INF = -100000;
-
+``
 
 //Grid World Size by rows x columns
 const int row = 5;
@@ -117,8 +117,6 @@ const int coor_to_state[row][column] = {
     {15,16,NEG_INF,17,18},
     {19,20,21,22,23}
 };
-
-
 
 
 int main(){
