@@ -2,7 +2,7 @@
  * Grid World: Generate the transition table in the input file.
  * Author: Haoyu Ji
  * Usage: 
- * > g++-7 generateInput.cpp
+ * > g++ -I /usr/local/include/eigen3/ generateInput.cpp 
  * > ./a.out > [out_filename]
  * Output File Structure:
  * First Line: number of states |S|
@@ -13,19 +13,24 @@
  *
  * TODO: 
  * 1. Adding absorbing state
+ * 
  */
 
 
 #include <stdio.h>
 #include <algorithm>
-#include <stdlib.h> // div, div_t
+#include <stdlib.h> // div, div_t, rand
+#include <Eigen/Dense>
+
+using namespace Eigen;
 
 #define REP(i, a, b) for (int i = int(a); i <= b; i++)
 
 //Total number of states
 const int STATE_NUM = 23;
+const int goal_state = 23;
+const int absorbing_state = 24; //only accessible in transition table
 const int NEG_INF = -100000;
-``
 
 //Grid World Size by rows x columns
 const int row = 5;
@@ -118,12 +123,39 @@ const int coor_to_state[row][column] = {
     {19,20,21,22,23}
 };
 
+double trans_table[(STATE_NUM+1) * NUM_ACTION][STATE_NUM+1] = {0.0};
+
+
+void generateInput();
+
+int get_random_action(int total_num_actions);
+
+
+
+
+
+
+
+
+
 
 int main(){
-        //initialize all to 0.0
+    
+    generateInput();
+    
+    return 0;
+    
+}
+
+
+void generateInput(){
+    //initialize all to 0.0
         //printf("Trans table row: %d, column: %d\n", STATE_NUM*NUM_ACTION, STATE_NUM);
-    double trans_table[STATE_NUM * NUM_ACTION][STATE_NUM] = {0.0};
     REP (s, 0, STATE_NUM-1){//Genrate Transition probability row for state_i
+        if(s == goal_state-1){//skip the one for goal_state
+            continue;
+        }
+        
         REP (a, 0, NUM_ACTION-1 ){//for each action
             REP (o, 0, NUM_OUTCOME-1 ){//For each outcome
                     /*
@@ -178,19 +210,26 @@ int main(){
         
     }
 
-    printf("%d\n", STATE_NUM);//first line number of state
+        //modify the transition table according to the terminal state
+
+        //first modify the goals transition to always go to absorbing state
+    REP (i, 0, NUM_ACTION-1){
+        trans_table[(goal_state-1)*NUM_ACTION + i][absorbing_state-1] = 1.0;
+        trans_table[(absorbing_state-1)*NUM_ACTION + i][absorbing_state-1] = 1.0;
+    }
+    
+
+    printf("%d\n", STATE_NUM+1);//first line number of state
     REP (i, 0, STATE_NUM-1){//the next STATE_NUM line: rewards for entering each state
         printf("%.1f\n", GW[state_to_coor[i][X]][state_to_coor[i][Y]]);
     }
-    REP (i, 0, STATE_NUM*NUM_ACTION-1){// next STATE_NUM * NUM_ACTION lines: Transition table
-        REP (j, 0, STATE_NUM-1){
+    printf("%.2f\n", 0.00);//absorbing_state
+    REP (i, 0, (STATE_NUM+1)*NUM_ACTION-1){// next STATE_NUM * NUM_ACTION lines: Transition table
+        REP (j, 0, STATE_NUM){
+//            printf("(%d, %d): ",i, j);
             printf("%.2f, ", trans_table[i][j]);
         }
         printf("\n");
     }
-
-    
-    
-    return 0;
-    
 }
+
