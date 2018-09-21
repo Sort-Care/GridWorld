@@ -25,8 +25,9 @@
 //#include <Eigen/Dense>
 
 //using namespace Eigen;
-
 #define REP(i, a, b) for (int i = int(a); i <= b; i++)
+
+/*** Data Structures for depicting the gridworld problem ***/
 
 //Total number of states
 const int STATE_NUM = 23;
@@ -128,6 +129,14 @@ const int coor_to_state[row][column] = {
 double trans_table[(STATE_NUM+1) * NUM_ACTION][STATE_NUM+1] = {0.0};
 
 
+/***** Data structures for simulating an agent in the gridworld ******/
+const int NUM_EPISODES = 10000;
+double episode_reward[NUM_EPISODES]; //discounted reward
+// Simulation: S0 ----> A0 ----> S1(collect R1) ------> ...
+
+
+
+/*** Functions ****/
 void generateInput();
 
 int get_random_action(int total_num_actions);
@@ -135,6 +144,12 @@ int get_random_action(int total_num_actions);
 void print_normal();
 
 void print_for_py();
+
+void value_iteration();
+
+void simulate_random();
+
+void simulate_optimal();
 
 
 
