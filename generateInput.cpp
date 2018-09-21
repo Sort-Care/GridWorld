@@ -1,5 +1,6 @@
 /*
- * Grid World: Generate the transition table in the input file.
+ * Grid World: Generate the transition table in the input file and simulate
+ *             the running of the grid world
  * Author: Haoyu Ji
  * Usage: 
  * > g++ -I /usr/local/include/eigen3/ generateInput.cpp 
@@ -12,17 +13,18 @@
  *       {state_i transit with action |A|} * |S|
  *
  * TODO: 
- * 1. Adding absorbing state
- * 
+ * 1. Adding absorbing state -- DONE
+ * 2. Simulate the running of the gridworld -- DUE today
+ * 3. Value Iteration
  */
 
 
 #include <stdio.h>
 #include <algorithm>
 #include <stdlib.h> // div, div_t, rand
-#include <Eigen/Dense>
+//#include <Eigen/Dense>
 
-using namespace Eigen;
+//using namespace Eigen;
 
 #define REP(i, a, b) for (int i = int(a); i <= b; i++)
 
@@ -43,7 +45,7 @@ const int Y = 1;
 
 
 // Four actions
-enum ACTIONS {AU, AD, AL, AR};
+enum ACTIONS {AU, AD, AL, AR};//0, 1, 2, 3
 enum OUTCOMES {SUC, STAY, VL, VR}; 
 const int coordinate_change[NUM_ACTION][NUM_OUTCOME][2] = {
     {//AU
@@ -130,8 +132,9 @@ void generateInput();
 
 int get_random_action(int total_num_actions);
 
+void print_normal();
 
-
+void print_for_py();
 
 
 
@@ -217,8 +220,13 @@ void generateInput(){
         trans_table[(goal_state-1)*NUM_ACTION + i][absorbing_state-1] = 1.0;
         trans_table[(absorbing_state-1)*NUM_ACTION + i][absorbing_state-1] = 1.0;
     }
-    
 
+    print_for_py();
+}
+
+
+
+void print_normal(){
     printf("%d\n", STATE_NUM+1);//first line number of state
     REP (i, 0, STATE_NUM-1){//the next STATE_NUM line: rewards for entering each state
         printf("%.1f\n", GW[state_to_coor[i][X]][state_to_coor[i][Y]]);
@@ -233,3 +241,29 @@ void generateInput(){
     }
 }
 
+
+void print_for_py(){
+    int action_order[4] = {2, 0, 3, 1};//U, D, L, R  0, 1, 2, 3, want L, U, R, D
+    
+        //print to run value iteration with a python file
+    printf("%d\n", STATE_NUM+1);
+    REP (i, 0, STATE_NUM-1){//the next STATE_NUM line: rewards for entering each state
+        printf("%.1f\n", GW[state_to_coor[i][X]][state_to_coor[i][Y]]);
+    }
+
+    printf("%.2f\n", 0.00);
+    REP (i, 0, NUM_ACTION-1){// 0, 1, 2, 3  No L, U, R, D
+            //for each actions print for every state, here it should be printing
+            // 24 lines
+        REP (j, 0, STATE_NUM){ //0, 1, ..., 23
+                //print trans_table[(j-1)*NUM_ACTION+i][all]
+            REP(k, 0, STATE_NUM){
+                printf("%.2f", trans_table[j*NUM_ACTION+action_order[i]][k]);
+                if (k != STATE_NUM) printf(", ");
+                else{
+                    printf("\n");
+                }
+            }
+        }
+    }
+}
