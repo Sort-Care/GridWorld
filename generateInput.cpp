@@ -22,7 +22,6 @@
 #include <stdio.h>
 #include <algorithm>
 #include <stdlib.h> // div, div_t, rand
-#include <time.h>
 
 #include <random>
 #include <chrono>
@@ -312,7 +311,6 @@ int random_sample(double distribution[],int size){
 
     if(sum == 1.0){//valid
             // will generate [0,1]
-        srand(time(0));
         double rnum = random_zero_to_one();
         printf("%f\n", rnum);
         
