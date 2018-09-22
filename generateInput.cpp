@@ -22,6 +22,10 @@
 #include <stdio.h>
 #include <algorithm>
 #include <stdlib.h> // div, div_t, rand
+#include <time.h>
+
+#include <random>
+#include <chrono>
 //#include <Eigen/Dense>
 
 //using namespace Eigen;
@@ -151,6 +155,17 @@ void simulate_random();
 
 void simulate_optimal();
 
+/*
+ * Random Samle from a distribution array:
+ * Input: 
+ *       double distribution: an double array specifing a distribution, 
+ *                            should add up to 1
+ *       int size: the array size
+ */
+int random_sample(double distribution[], int size);
+
+double random_zero_to_one();
+
 
 
 
@@ -167,7 +182,7 @@ int main(){
 
 
 void generateInput(){
-    //initialize all to 0.0
+        //initialize all to 0.0
         //printf("Trans table row: %d, column: %d\n", STATE_NUM*NUM_ACTION, STATE_NUM);
     REP (s, 0, STATE_NUM-1){//Genrate Transition probability row for state_i
         if(s == goal_state-1){//skip the one for goal_state
@@ -236,7 +251,7 @@ void generateInput(){
         trans_table[(absorbing_state-1)*NUM_ACTION + i][absorbing_state-1] = 1.0;
     }
 
-    print_for_py();
+    print_normal();
 }
 
 
@@ -281,4 +296,51 @@ void print_for_py(){
             }
         }
     }
+}
+
+
+int random_sample(double distribution[],int size){
+        //check if the array adds up to 1
+    double sum = 0.0;
+    REP (i, 0, size-1){
+        printf("%.2f ", distribution[i]);
+        sum += distribution[i];
+    }
+    printf("\n");
+    
+    
+
+    if(sum == 1.0){//valid
+            // will generate [0,1]
+        srand(time(0));
+        double rnum = random_zero_to_one();
+        printf("%f\n", rnum);
+        
+        REP(i, 0, size-1){
+            printf("%d: %.2f\t rnum: %.2f\n", i, distribution[i], rnum);
+            if (rnum < distribution[i]) return i;
+            else{
+                rnum -= distribution[i];
+            }
+        }
+        
+        
+    }else{
+        return(-1);//not valid return an index that doesn't make sense.
+    }
+}
+
+
+double random_zero_to_one(){
+    std::mt19937_64 rng;
+    // initialize the random number generator with time-dependent seed
+    uint64_t timeSeed = std::chrono::high_resolution_clock::now().time_since_epoch().count();
+    std::seed_seq ss{uint32_t(timeSeed & 0xffffffff), uint32_t(timeSeed>>32)};
+    rng.seed(ss);
+    // initialize a uniform distribution between 0 and 1
+    std::uniform_real_distribution<double> unif(0, 1);
+    // ready to generate random numbers
+    const int nSimulations = 10;
+    double currentRandomNumber = unif(rng);
+    return currentRandomNumber;
 }
