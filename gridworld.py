@@ -1,6 +1,6 @@
 """
 Author: Haoyu Ji
-Initial Writing Purpose: For course work
+Initial Writing Purpose: For 683 course work
 """
 
 
