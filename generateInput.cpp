@@ -25,6 +25,7 @@
 
 #include <random>
 #include <chrono>
+#include <cmath>
 //#include <Eigen/Dense>
 
 //using namespace Eigen;
@@ -50,7 +51,7 @@ const int Y = 1;
 
 // Four actions
 enum ACTIONS {AU, AD, AL, AR};//0, 1, 2, 3
-enum OUTCOMES {SUC, STAY, VL, VR}; 
+enum OUTCOMES {SUC, STAY, VL, VR}; // with probabilities: 0.8, 0.1, 0.05, 0.05
 const int coordinate_change[NUM_ACTION][NUM_OUTCOME][2] = {
     {//AU
         {-1, 0}, //SUC
@@ -82,7 +83,7 @@ const int coordinate_change[NUM_ACTION][NUM_OUTCOME][2] = {
 //Grid World Model Probabilities on moving effects.
 const double probs[NUM_OUTCOME] = {0.8, 0.1, 0.05, 0.05};
 
-const double GW[row][column] = {
+const double GW[row][column] = {// rewards
     {0.0, 0.0, 0.0, 0.0, 0.0},
     {0.0, 0.0, 0.0, 0.0, 0.0},
     {0.0, 0.0, NEG_INF, 0.0, 0.0},
@@ -134,7 +135,34 @@ double trans_table[(STATE_NUM+1) * NUM_ACTION][STATE_NUM+1] = {0.0};
 
 /***** Data structures for simulating an agent in the gridworld ******/
 const int NUM_EPISODES = 10000;
+const double dis_gamma = 0.9;
+
 double episode_reward[NUM_EPISODES]; //discounted reward
+
+const double pr_actions[NUM_ACTION] = {0.25, 0.25, 0.25, 0.25};
+const double d_0[STATE_NUM] = {//23 states not including the absorbing state
+    1,1,1,1,1,
+    1,1,1,1,1,
+    1,1,1,1,
+    1,1,1,1,
+    1,1,1,1,1
+};
+const double pr_action_outcome[4] = {0.8, 0.1, 0.05, 0.05};
+
+
+// optimal policy using last semester 683 value iteration python code
+const int optimal_policy[STATE_NUM] = {// AU:0, AD:1, AL:2, AR:3
+    3,3,3,1,1,
+    3,3,3,1,1,
+    0,0,1,1,
+    0,0,1,1,
+    0,0,3,3,0
+};
+
+
+
+
+
 // Simulation: S0 ----> A0 ----> S1(collect R1) ------> ...
 
 
@@ -150,9 +178,12 @@ void print_for_py();
 
 void value_iteration();
 
-void simulate_random();
+double simulate_random();// run simulation randomly choose actions
 
-void simulate_optimal();
+double simulate_optimal();// run simulation using optimal policy
+
+void run_simulation_with_strategy(double (*f)());
+
 
 /*
  * Random Samle from a distribution array:
@@ -161,19 +192,20 @@ void simulate_optimal();
  *                            should add up to 1
  *       int size: the array size
  */
-int random_sample(double distribution[], int size);
+int random_sample_distribution(const double distribution[],const int size);
+
+int random_sample_weights(const double weights[], const int size);
 
 double random_zero_to_one();
 
-
-
-
+double random_range(double range);
 
 
 
 int main(){
-    
     generateInput();
+    simulate_random();
+    
     
     return 0;
     
@@ -250,7 +282,7 @@ void generateInput(){
         trans_table[(absorbing_state-1)*NUM_ACTION + i][absorbing_state-1] = 1.0;
     }
 
-    print_normal();
+        //print_normal();
 }
 
 
@@ -298,7 +330,7 @@ void print_for_py(){
 }
 
 
-int random_sample(double distribution[],int size){
+int random_sample_distribution(const double distribution[], const int size){
         //check if the array adds up to 1
     double sum = 0.0;
     REP (i, 0, size-1){
@@ -328,17 +360,91 @@ int random_sample(double distribution[],int size){
     }
 }
 
+int random_sample_weights(const double weights[], const int size){
+        //first compute the sum of all weights
+    double sum = 0.0;
+    REP (i, 0, size-1){
+        sum += weights[i];
+            //printf("Adding %.2f\n", weights[i]);
+    }
+        //printf("%.2f\n", sum);
+    double rnum = random_range(sum);
+        //printf("%.2f\n", rnum);
+    REP (i, 0, size-1){
+        if(rnum < weights[i]) return i;
+        else{
+            rnum -= weights[i];
+        }
+    }
+}
 
-double random_zero_to_one(){
+double random_range(double range){
     std::mt19937_64 rng;
-    // initialize the random number generator with time-dependent seed
+        // initialize the random number generator with time-dependent seed
     uint64_t timeSeed = std::chrono::high_resolution_clock::now().time_since_epoch().count();
     std::seed_seq ss{uint32_t(timeSeed & 0xffffffff), uint32_t(timeSeed>>32)};
     rng.seed(ss);
-    // initialize a uniform distribution between 0 and 1
-    std::uniform_real_distribution<double> unif(0, 1);
-    // ready to generate random numbers
+        // initialize a uniform distribution between 0 and 1
+    std::uniform_real_distribution<double> unif(0, range);
+        // ready to generate random numbers
     const int nSimulations = 10;
     double currentRandomNumber = unif(rng);
     return currentRandomNumber;
+}
+
+
+
+double random_zero_to_one(){
+    std::mt19937_64 rng;
+        // initialize the random number generator with time-dependent seed
+    uint64_t timeSeed = std::chrono::high_resolution_clock::now().time_since_epoch().count();
+    std::seed_seq ss{uint32_t(timeSeed & 0xffffffff), uint32_t(timeSeed>>32)};
+    rng.seed(ss);
+        // initialize a uniform distribution between 0 and 1
+    std::uniform_real_distribution<double> unif(0, 1);
+        // ready to generate random numbers
+    const int nSimulations = 10;
+    double currentRandomNumber = unif(rng);
+    return currentRandomNumber;
+}
+
+
+double simulate_random(){
+        //get s0 as a start state
+    int start_state = random_sample_weights(d_0, 23);
+    int S_t, A_t, S_tn;
+    double discounted_reward = 0.0;
+    int cnt = 0;
+
+    S_t = start_state;
+    while (S_t != absorbing_state-1){// nor absorbing state
+            //sample an action randomly
+            //printf("Current State: %d\t", S_t);
+        
+        A_t = random_sample_weights(pr_actions, 4);
+            //printf("Picked Action: %d\t", A_t);
+        
+            //sample the next state given
+        S_tn = random_sample_weights(trans_table[S_t * NUM_ACTION + A_t], STATE_NUM+1);
+            //printf("Next State: %d\n", S_tn);
+        
+            //Get reward
+        discounted_reward += pow(dis_gamma, cnt) * GW[state_to_coor[S_tn][X]][state_to_coor[S_tn][Y]];
+        cnt ++;
+            //printf("discounted: %f\t Reward:%.2f\n", pow(dis_gamma, cnt),
+            //GW[state_to_coor[S_tn][X]][state_to_coor[S_tn][Y]]);
+        
+
+            //update the discounted reward
+        S_t = S_tn;
+    }
+
+    return discounted_reward;
+        //printf("%.8f\n", discounted_reward);
+}
+
+void run_simulation_with_strategy(double (*f)()){
+    REP (i, 0, NUM_EPISODES){
+        episode_reward[i] = (*f)();
+    }
 }
